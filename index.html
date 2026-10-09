@@ -1,1 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daniel Calculator</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Arial,sans-serif; }
+  html, body { height:100%; }
+  body { display:flex; flex-direction:column; background:#fcfdfa; overflow:hidden; }
+
+  /* Top bar */
+  .topbar { display:flex; height:64px; }
+  .inputbox {
+    flex:1; margin:12px 0 12px 12px; padding:0 14px;
+    border:2px solid #1a6b7a; background:#fff;
+    display:flex; align-items:center; font-size:24px; color:#222;
+    overflow-x:auto; white-space:nowrap;
+  }
+  .clearbtn {
+    width:72px; margin:12px 12px 12px 0; border:none; cursor:pointer;
+    background:#f5b971; font-size:28px; color:#5a3d13;
+  }
+
+  /* Grid canvas */
+  .canvas {
+    flex:1; position:relative; overflow:auto; padding:14px;
+    background-color:#fcfdfa;
+    background-image:
+      linear-gradient(#d5e5e5 1px, transparent 1px),
+      linear-gradient(90deg, #d5e5e5 1px, transparent 1px);
+    background-size:56px 56px;
+  }
+  #expr { font-size:30px; color:#111; min-height:70px; }
+  #result { margin-top:16px; font-size:32px; color:#1a6b7a; font-weight:600; }
+
+  /* Toggle chips */
+  .toggles { display:flex; justify-content:flex-end; gap:10px; padding:10px 14px; background:#eef4f2; }
+  .chip { border:2px solid #aaa; padding:6px 14px; font-weight:700; font-size:16px; cursor:pointer; background:#fff; color:#777; }
+  .chip.active { color:#1a6b7a; border-color:#1a6b7a; }
+
+  /* Keypad */
+  .keypad { display:grid; gap:2px; background:#ccc; height:45vh; min-height:260px;
+            grid-template-columns:repeat(9, 1fr); grid-template-rows:repeat(4, 1fr); }
+  .key { border:none; font-size:20px; cursor:pointer; color:#333; }
+  .key:active { filter:brightness(0.88); }
+  .blue   { background:#9fd4f0; }
+  .teal   { background:#7fd0c8; }
+  .gray   { background:#c9c9c7; }
+  .orange { background:#f5b971; }
+  .digit  { background:#f0f0ee; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="inputbox" id="display"></div>
+  <button class="clearbtn" onclick="clearAll()">C</button>
+</div>
+
+<div class="canvas">
+  <div id="expr"></div>
+  <div id="result"></div>
+</div>
+
+<div class="toggles">
+  <div class="chip active">0-9</div>
+  <div class="chip">a-z</div>
+  <div class="chip">α-ω</div>
+</div>
+
+<div class="keypad">
+  <button class="key blue" onclick="ins('%')">%</button>
+  <button class="key blue" onclick="ins('!')">n!</button>
+  <button class="key blue" onclick="ins('|')">|x|</button>
+  <button class="key blue" onclick="ins('^')">xʸ</button>
+  <button class="key blue" onclick="ins('√')">√</button>
+  <button class="key gray" onclick="ins('/')">÷</button>
+  <button class="key gray" onclick="ins('*')">×</button>
+  <button class="key gray" onclick="ins('-')">−</button>
+  <button class="key gray" onclick="ins('+')">+</button>
+
+  <button class="key digit" onclick="ins('7')">7</button>
+  <button class="key digit" onclick="ins('8')">8</button>
+  <button class="key digit" onclick="ins('9')">9</button>
+  <button class="key digit" onclick="ins('4')">4</button>
+  <button class="key digit" onclick="ins('5')">5</button>
+  <button class="key digit" onclick="ins('6')">6</button>
+  <button class="key digit" onclick="ins('1')">1</button>
+  <button class="key digit" onclick="ins('2')">2</button>
+  <button class="key digit" onclick="ins('3')">3</button>
+
+  <button class="key teal" onclick="ins('a')">a-Z</button>
+  <button class="key digit" onclick="ins('0')">0</button>
+  <button class="key digit" onclick="ins('.')">.</button>
+  <button class="key gray" onclick="ins('(')">(</button>
+  <button class="key gray" onclick="ins(')')">)</button>
+  <button class="key orange" onclick="backspace()">⌫</button>
+  <button class="key orange" onclick="evalExpr()" style="grid-column:span 3; background:#5b97d1; color:#fff;">=</button>
+</div>
+
+<script>
+let tokens = [];
+
+function fracHTML(a, b) {
+  return '<span style="display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;margin:0 3px">' +
+         '<span style="border-bottom:2px solid #111;padding:0 4px">' + a + '</span>' +
+         '<span style="padding:0 4px">' + b + '</span></span>';
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+function render() {
+  let out = '';
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i] === '/' && i > 0 && i < tokens.length - 1 && /[0-9]/.test(tokens[i-1]) && /[0-9]/.test(tokens[i+1])) {
+      out += fracHTML(esc(tokens[i-1]), esc(tokens[i+1]));
+      i++;
+    } else if (tokens[i] === '*') out += ' × ';
+    else if (tokens[i] === '-') out += ' − ';
+    else out += esc(tokens[i]);
+  }
+  document.getElementById('display').textContent = tokens.join(' ');
+  document.getElementById('expr').innerHTML = out || '&nbsp;';
+}
+
+function ins(t){ tokens.push(t); render(); }
+function backspace(){ tokens.pop(); render(); }
+function clearAll(){ tokens = []; document.getElementById('result').textContent = ''; render(); }
+
+function gcd(a, b){ return b ? gcd(b, a % b) : Math.abs(a); }
+
+function evalExpr() {
+  try {
+    const val = Function('"use strict";return (' + tokens.join('') + ')')();
+    let text;
+    if (Number.isInteger(val)) {
+      text = String(val);
+    } else {
+      // try to recover an exact fraction like 0.5 -> 1/2
+      const s = String(val);
+      const m = s.match(/^(-?\d+)\.(\d+)$/);
+      if (m) {
+        const num = parseInt(m[1] + m[2]);
+        const den = Math.pow(10, m[2].length);
+        const g = gcd(num, den);
+        text = (num/g) + '/' + (den/g) + '  (≈ ' + val.toFixed(4) + ')';
+      } else {
+        text = val.toFixed(6);
+      }
+    }
+    document.getElementById('result').textContent = '= ' + text;
+  } catch (e) {
+    document.getElementById('result').textContent = 'error';
+  }
+}
+
+render();
+</script>
+</body><div style="text-align:center; padding:10px 0 0; font-size:22px; font-weight:700; color:#1a6b7a;">
+  Daniel Calculator
+</div>
+
+</html>
 
