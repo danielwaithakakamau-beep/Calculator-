@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Scientific Calculator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #e8eef2;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 12px;
+    }
+
+    .calculator {
+      width: 100%;
+      max-width: 420px;
+      background: #f7f9fb;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 92vh;
+      max-height: 860px;
+    }
+
+    /* Display area */
+    .display-area {
+      flex: 1;
+      background: 
+        linear-gradient(rgba(200, 220, 230, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200, 220, 230, 0.15) 1px, transparent 1px);
+      background-size: 28px 28px;
+      background-color: #f0f5f8;
+      position: relative;
+      padding: 16px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .input-field {
+      flex: 1;
+      height: 44px;
+      border: 1.5px solid #7a9bb0;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 22px;
+      padding: 0 12px;
+      outline: none;
+      font-family: "Courier New", monospace;
+      color: #1a2a3a;
+    }
+
+    .clear-btn {
+      width: 44px;
+      height: 44px;
+      background: #e8a060;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .clear-btn:active { transform: scale(0.95); background: #d89050; }
+
+    .cursor-box {
+      width: 18px;
+      height: 22px;
+      border: 2px solid #5a7a90;
+      border-radius: 3px;
+      margin-top: 4px;
+      opacity: 0.7;
+    }
+
+    .history {
+      flex: 1;
+      overflow-y: auto;
+      font-family: "Courier New", monospace;
+      font-size: 18px;
+      color: #2a3a4a;
+      padding: 8px 4px;
+      line-height: 1.6;
+    }
+
+    .history-line {
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    .history-line.result {
+      color: #1a6a9a;
+      font-weight: 600;
+    }
+
+    /* Keypad */
+    .keypad {
+      background: #eef2f6;
+      padding: 10px 8px 12px;
+      border-top: 1px solid #d0d8e0;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      justify-content: flex-end;
+      padding-right: 4px;
+    }
+
+    .tab {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1.5px solid #8aa0b0;
+      background: #fff;
+      color: #3a4a5a;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: #3a6a9a;
+      color: #fff;
+      border-color: #3a6a9a;
+    }
+
+    .keys-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr 1.2fr;
+      gap: 6px;
+    }
+
+    /* Left function pad */
+    .func-pad {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(4, 1fr);
+      gap: 5px;
+    }
+
+    .func-btn {
+      background: #5a9fd4;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      box-shadow: 0 2px 3px rgba(0,0,0,0.08);
+    }
+    .func-btn:active { background: #4a8fc4; transform: scale(0.96); }
+
+    .func-btn.wide {
+      grid-column: span 2;
+      background: #4ab0a0;
+      font-size: 16px;
+    }
+
+    /* Number pad */
+    .num-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .num-btn {
+      background: #f5f7fa;
+      border: 1px solid #d0d8e0;
+      border-radius: 8px;
+      font-size: 22px;
+      font-weight: 500;
+      color: #1a2a3a;
+      cursor: pointer;
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .num-btn:active { background: #e0e6ec; transform: scale(0.96); }
+
+    /* Operator pad */
+    .op-pad {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(5, 1fr);
+      gap: 5px;
+    }
+
+    .op-btn {
+      background: #c8d0d8;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #2a3a4a;
+      cursor: pointer;
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .op-btn:active { background: #b0b8c0; transform: scale(0.96); }
+
+    .op-btn.equals {
+      background: #f5f7fa;
+      border: 1px solid #d0d8e0;
+      font-size: 20px;
+    }
+
+    .op-btn.del {
+      background: #e8a060;
+      color: #fff;
+      grid-column: span 2;
+      font-size: 18px;
+    }
+    .op-btn.del:active { background: #d89050; }
+
+    .op-btn.nav {
+      background: #e8a060;
+      color: #fff;
+      font-size: 16px;
+    }
+    .op-btn.nav:active { background: #d89050; }
+
+    .ans-label {
+      font-size: 11px;
+      color: #6a7a8a;
+      position: absolute;
+      top: 4px;
+      right: 8px;
+    }
+
+    .op-btn.with-ans {
+      position: relative;
+    }
+
+    /* Small plus floating button */
+    .fab {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #8ab4d4;
+      color: #fff;
+      border: none;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
+      z-index: 5;
+    }
+    .fab:active { transform: scale(0.92); }
+
+    /* Footer nav */
+    .footer {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 8px 0 6px;
+      background: #e8eef2;
+      border-top: 1px solid #d0d8e0;
+    }
+    .footer-icon {
+      width: 28px;
+      height: 28px;
+      opacity: 0.5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    /* Alpha keyboard (hidden by default) */
+    .alpha-pad, .greek-pad {
+      display: none;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 5px;
+      padding: 4px 0;
+    }
+    .alpha-pad.active, .greek-pad.active {
+      display: grid;
+    }
+    .alpha-btn {
+      background: #f5f7fa;
+      border: 1px solid #d0d8e0;
+      border-radius: 8px;
+      font-size: 16px;
+      min-height: 40px;
+      cursor: pointer;
+    }
+    .alpha-btn:active { background: #e0e6ec; }
+
+    .keys-main {
+      display: contents;
+    }
+    .keys-main.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="display-area">
+      <div class="input-row">
+        <input type="text" class="input-field" id="display" readonly value="" placeholder="" />
+        <button class="clear-btn" id="clearBtn">C</button>
+      </div>
+      <div class="cursor-box" id="cursorBox"></div>
+      <div class="history" id="history"></div>
+      <button class="fab" id="fabBtn">+</button>
+    </div>
+
+    <div class="keypad">
+      <div class="tabs">
+        <button class="tab active" data-mode="num">0-9</button>
+        <button class="tab" data-mode="alpha">a-z</button>
+        <button class="tab" data-mode="greek">α-ω</button>
+      </div>
+
+      <div class="keys-grid" id="keysMain">
+        <!-- Function pad -->
+        <div class="func-pad">
+          <button class="func-btn" data-val="%">%</button>
+          <button class="func-btn" data-val="!">n!</button>
+          <button class="func-btn" data-val="abs(">|x|</button>
+          <button class="func-btn" data-val="^">x<sup>n</sup></button>
+          <button class="func-btn" data-val="^">x<sup>y</sup></button>
+          <button class="func-btn" data-val="sqrt(">√</button>
+          <button class="func-btn" data-val="cbrt(">∛</button>
+          <button class="func-btn wide" data-val="var">a-Z</button>
+        </div>
+
+        <!-- Number pad -->
+        <div class="num-pad">
+          <button class="num-btn" data-val="7">7</button>
+          <button class="num-btn" data-val="8">8</button>
+          <button class="num-btn" data-val="9">9</button>
+          <button class="num-btn" data-val="4">4</button>
+          <button class="num-btn" data-val="5">5</button>
+          <button class="num-btn" data-val="6">6</button>
+          <button class="num-btn" data-val="1">1</button>
+          <button class="num-btn" data-val="2">2</button>
+          <button class="num-btn" data-val="3">3</button>
+          <button class="num-btn" data-val="0">0</button>
+          <button class="num-btn" data-val="_">_</button>
+          <button class="num-btn" data-val=".">.</button>
+        </div>
+
+        <!-- Operator pad -->
+        <div class="op-pad">
+          <button class="op-btn" data-val="/">/</button>
+          <button class="op-btn" data-val="(">(</button>
+          <button class="op-btn" data-val=")">)</button>
+          <button class="op-btn with-ans" data-val="Ans">
+            <span class="ans-label">Ans</span>
+            =
+          </button>
+          <button class="op-btn" data-val="*">×</button>
+          <button class="op-btn" data-val="-">−</button>
+          <button class="op-btn del" id="delBtn">⌫</button>
+          <button class="op-btn" data-val="+">+</button>
+          <button class="op-btn nav" data-val="left">←</button>
+          <button class="op-btn nav" data-val="right">→</button>
+        </div>
+      </div>
+
+      <!-- Alpha keyboard -->
+      <div class="alpha-pad" id="alphaPad"></div>
+      <!-- Greek keyboard -->
+      <div class="greek-pad" id="greekPad"></div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-icon">☰</div>
+      <div class="footer-icon">○</div>
+      <div class="footer-icon">◁</div>
+    </div>
+  </div>
+
+  <script>
+    const display = document.getElementById('display');
+    const historyEl = document.getElementById('history');
+    const clearBtn = document.getElementById('clearBtn');
+    const delBtn = document.getElementById('delBtn');
+    const keysMain = document.getElementById('keysMain');
+    const alphaPad = document.getElementById('alphaPad');
+    const greekPad = document.getElementById('greekPad');
+    const tabs = document.querySelectorAll('.tab');
+    const fabBtn = document.getElementById('fabBtn');
+
+    let expr = '';
+    let cursorPos = 0;
+    let lastAns = 0;
+    let history = [];
+
+    // Build alpha and greek pads
+    const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    letters.forEach(l => {
+      const btn = document.createElement('button');
+      btn.className = 'alpha-btn';
+      btn.textContent = l;
+      btn.dataset.val = l;
+      alphaPad.appendChild(btn);
+    });
+
+    const greek = ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'];
+    greek.forEach(g => {
+      const btn = document.createElement('button');
+      btn.className = 'alpha-btn';
+      btn.textContent = g;
+      btn.dataset.val = g;
+      greekPad.appendChild(btn);
+    });
+
+    function updateDisplay() {
+      display.value = expr;
+      // Simple visual caret approximation
+      display.setSelectionRange(cursorPos, cursorPos);
+      display.focus();
+    }
+
+    function insert(val) {
+      if (val === 'Ans') {
+        val = String(lastAns);
+      }
+      if (val === 'left') {
+        cursorPos = Math.max(0, cursorPos - 1);
+        updateDisplay();
+        return;
+      }
+      if (val === 'right') {
+        cursorPos = Math.min(expr.length, cursorPos + 1);
+        updateDisplay();
+        return;
+      }
+      if (val === 'var') {
+        // switch to alpha
+        switchMode('alpha');
+        return;
+      }
+
+      expr = expr.slice(0, cursorPos) + val + expr.slice(cursorPos);
+      cursorPos += val.length;
+      updateDisplay();
+    }
+
+    function clearAll() {
+      expr = '';
+      cursorPos = 0;
+      updateDisplay();
+    }
+
+    function deleteChar() {
+      if (cursorPos > 0) {
+        expr = expr.slice(0, cursorPos - 1) + expr.slice(cursorPos);
+        cursorPos--;
+        updateDisplay();
+      }
+    }
+
+    function factorial(n) {
+      n = Math.floor(n);
+      if (n < 0) return NaN;
+      if (n === 0 || n === 1) return 1;
+      let r = 1;
+      for (let i = 2; i <= n; i++) r *= i;
+      return r;
+    }
+
+    function evaluate(expression) {
+      try {
+        // Replace functions and symbols
+        let e = expression
+          .replace(/×/g, '*')
+          .replace(/÷/g, '/')
+          .replace(/√/g, 'sqrt')
+          .replace(/∛/g, 'cbrt')
+          .replace(/π/g, 'Math.PI')
+          .replace(/\^/g, '**')
+          .replace(/abs\(/g, 'Math.abs(')
+          .replace(/sqrt\(/g, 'Math.sqrt(')
+          .replace(/cbrt\(/g, 'Math.cbrt(')
+          .replace(/(\d+)!/g, (_, n) => factorial(+n))
+          .replace(/(\d+(?:\.\d+)?)%/g, (_, n) => `(${n}/100)`);
+
+        // Handle trailing operators gracefully
+        e = e.replace(/[+\-*/**]+$/, '');
+
+        // Safe-ish eval
+        const result = Function('"use strict"; return (' + e + ')')();
+        if (typeof result === 'number' && isFinite(result)) {
+          return result;
+        }
+        return 'Error';
+      } catch (err) {
+        return 'Error';
+      }
+    }
+
+    function calculate() {
+      if (!expr.trim()) return;
+      const result = evaluate(expr);
+      history.push({ expr, result });
+      if (history.length > 12) history.shift();
+      renderHistory();
+      if (result !== 'Error') {
+        lastAns = result;
+        expr = String(result);
+        cursorPos = expr.length;
+      }
+      updateDisplay();
+    }
+
+    function renderHistory() {
+      historyEl.innerHTML = history.map(h => 
+        `<div class="history-line">${h.expr}</div>
+         <div class="history-line result">= ${h.result}</div>`
+      ).join('');
+      historyEl.scrollTop = historyEl.scrollHeight;
+    }
+
+    function switchMode(mode) {
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+      keysMain.style.display = mode === 'num' ? 'grid' : 'none';
+      alphaPad.classList.toggle('active', mode === 'alpha');
+      greekPad.classList.toggle('active', mode === 'greek');
+    }
+
+    // Event listeners
+    clearBtn.addEventListener('click', clearAll);
+    delBtn.addEventListener('click', deleteChar);
+
+    document.querySelectorAll('[data-val]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.dataset.val;
+        if (val === '=') {
+          calculate();
+        } else {
+          insert(val);
+        }
+      });
+    });
+
+    // Alpha & Greek buttons
+    alphaPad.addEventListener('click', e => {
+      if (e.target.dataset.val) insert(e.target.dataset.val);
+    });
+    greekPad.addEventListener('click', e => {
+      if (e.target.dataset.val) insert(e.target.dataset.val);
+    });
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => switchMode(tab.dataset.mode));
+    });
+
+    fabBtn.addEventListener('click', () => {
+      insert('+');
+    });
+
+    // Keyboard support
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === '=') {
+        e.preventDefault();
+        calculate();
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        deleteChar();
+      } else if (e.key === 'Escape') {
+        clearAll();
+      } else if (e.key === 'ArrowLeft') {
+        insert('left');
+      } else if (e.key === 'ArrowRight') {
+        insert('right');
+      } else if (/^[0-9.+\-*/()^%]$/.test(e.key)) {
+        insert(e.key === '*' ? '*' : e.key);
+      }
+    });
+
+    // Initial focus
+    updateDisplay();
+  </script>
+</body>
+</html>
