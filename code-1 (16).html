@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daniel Calculator</title>
+<style>0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Arial,sans-serif; }
+  html, body { height:100%; }
+  body { display:flex; flex-direction:column;a; overflow:hidden; }
+
+  /* Top bar */
+  .topbar { display:flex; height:64px; }
+  .input:1; margin:12px 0 12px 12px; padding:0 14px;
+    border:2px solid #1a6b7a; background:#fff;
+    display:flex; align-items:center; font-size:24px; color:#222;
+    overflow-x:auto; white-space:nowrap;
+  }
+  .clearbtn {px; margin:12px 12px 12px 0; border:none; cursor:pointer;
+    background:#f5b971; font-size:28px; color:#5a3d13;
+  }
+
+  /* Grid canvas */
+  .canvas {
+    flex:1; position:relative; overflow:auto; padding:14px;
+    background-color:#fcfdfa;
+    background-image:
+      linear-gradient(#d5e5e5 1px, transparent 1px),
+      linear-gradient(90deg, #d5e5e5 1px, transparent 1px:56px 56px;
+  }
+  #expr30px; color:#111; min-height:70px; }
+  #result { margin-top:16px; font-size:32px; color:#1a6b7a; font-weight:600; }
+
+  /* Toggle chips */
+  .toggles { display:flex; justify-content:flex-end; gap:10px; padding:10px 14px; background:#eef4f2; }
+  .chip { border:2px solid #aaa; padding:6px 14px; font-weight::16px; cursor:pointer; background:#fff; color }
+  .chip.active { color:#1a6b7a; border-color:#1a6b7a; }
+
+  /* Keypad */
+  .keypad { display:grid; gap:2px; background:#ccc; height:45vh; min-height:260px;
+            grid-template-columns:repeat(9, 1fr); grid-auto-rows:1fr; overflow-y:auto; }
+  .key { border:none; font-size:20px; cursor:pointer; color:#333; }
+  .key:active { filter:brightness(0.88); }
+  .blue   { backgroundf0; }
+  .teal   { background:#7fd0c8; }
+  .gray   { background:#c9c9c7; }
+  .orange { background:#f5b971; }
+  .digit  { background:#f0f0ee; }
+
+  .footer { text-align:center; padding:10px 0; font-size:22px; font-weight:700; color:#1a6b7a; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="inputbox" id="display"></div>
+  <button class="clearbtn" onclick="clearAll()">C</button>
+</div>
+
+<div class="canvas">
+  <div id="expr"></div>
+  <div id="result"></div>
+</div>
+
+<div class="toggles">
+  <div class="chip active" onclick="setMode('digits', this)">0-9</div>
+  <div class="chip" onclick="setMode('latin', this)">a-z</div>
+  <div class="chip" onclick="setMode('greek-ω</div>
+</div>
+
+<!-- Digit-mode keypad template -->
+<template id="origKeypad">
+  <button class="keyins('%')">%</button>
+  <button class="key blue" onclick="ins('!')">n!</button>
+  <button class="key blue" onclick="ins('|')">|x|</button>
+  <button class="key blue" onclick="ins('^')">xʸ</button>
+  <button class="key blue" onclick="ins('√')">√</button>
+  <button class="key gray" onclick="ins('/')">÷</button>
+  <button class="key gray" onclick="ins('*')">×</button>
+  <button class="key gray" onclick="ins('-')">−</button>
+  <button class="key gray" onclick="ins('+')">+</button>
+
+  <button class="key digit" onclick="ins('7')">7</button>
+  <button class="key digit" onclick="ins('8')">8</button>
+  <button class="key digit" onclick="ins('9')">9</button>
+  <button class="key digit" onclick="ins('4')">4</button>
+  <button class="key digit" onclick="ins('5')">5</button>
+  <button class="key digit" onclick="ins('6')">6</button>
+  <button class="key digit" onclick="ins('1')">1</button>
+  <button class="key digit" onclick="ins('2')">2</button>
+  <button class="key digit" onclick="ins('3')">3</button>
+
+  <button class="key teal" onclick="ins('a')">a-Z</button>
+  <button class="key digit" onclick="ins('0')">0</button>
+  <button class="key digit" onclick="ins('.')">.</button>
+  <button class="key gray" onclick="ins('(')">(</button>="key gray" onclick="ins(')')">)</button>
+  <button class="key orange" onclick="backspace()">⌫</button>
+  <button class="key orange" onclick="evalExpr()" style="grid-column:span 3; background:#5b97dfff;">=</button>
+</template>
+
+<div class="keypad" id="keypad"></div>
+
+<div class="footer">Daniel Calculator</div>
+
+<script>
+let tokens = [];
+let vars = {};            // stored variable values, e.g. { x: 5, α: 3.14 }
+let mode = 'digits';
+
+const LATIN = 'abcdefghijklmnopqrstuvwxyz'.split('');
+const GREEK = 'αβγδεζηθικλμνξοπρστυφχψω'.split('');
+
+/* ---------- Keypad building ---------- */
+
+function setMode(m, chip) {
+  mode = m;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  buildKeypad();
+}
+
+function buildKeypad() {
+  const kp = document.getElementById('keypad');
+  kp.innerHTML = '';
+
+  if (mode === 'digits') {
+    kp.appendChild(document.getElementById('origKeypad').content.cloneNode(true));
+    return;
+  }
+
+  const letters = mode === 'latin' ? LATIN : GREEK;
+  const keys = [];
+
+  // utility row first
+  keys.push({ label: '(', val: '(',  cls: 'gray' });
+  keys.push({ label: ')', val: ')',  cls: 'gray' });
+  keys.push({ label: '+', val: '+',  cls: 'gray' });
+  keys.push({ label: '−', val: '-',  cls: 'gray' });
+  keys.push({ label: '×', val: '*',  cls: 'gray' });
+  keys.push({ label: '÷', val: '/',  cls: 'gray' });
+  keys.push({ label: '.', val: '.',  cls: 'digit' });
+  keys.push({ label: '=', val: '=',  cls: 'orange' });   // assignment
+  keys.push({ label: '⌫', val: null, cls: 'orange', action: backspace });
+
+  // letters
+  letters.forEach(L => keys.push({ label: L, val: L, cls' }));
+
+  // equals + clear, pad to full rows of 9
+  keys.push({ label: '=', val: null, cls: '', action: evalExpr, span: 3, bg: '#5b97d1', fg: '#fff' });
+  keys.push({ label: 'C', val: null, cls: ' clearAll });
+  while (keys.length % 9 !== 0) keys.push({ label: '', val: null, cls: 'digit', disabled: true });
+
+  keys.forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'key ' + k.cls;
+    b.textContent = k.label;
+    if (k.disabled) b.disabled = true;
+    if (k.bg) { b.style.background = k.bg; b.style.color = k.fg; }
+    if (k.span) b.style.gridColumn = 'span ' + k.span;
+    if (k.action) b.onclick = k.action;
+    else if (k.val !== null) b.onclick = () => ins(k.val);
+    kp.appendChild(b);
+  });
+}
+
+/* ---------- Input & rendering ---------- */
+
+function fracHTML(a, b) {
+  return '<span style="display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;margin:0 3px">' +
+         '<span style="border-bottom:2px solid #111;padding:0 4px">' + a + '</span>' +
+         '<span style="padding:0 4px">' + b + '</span></span>';
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+function render() {
+  let out = '';
+  const disp = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i] === '/' && i > 0 && i < tokens.length - 1) {
+      // gather full left operand = '', j = i - 1;
+      while (j >= 0 && /[0-9.]/.test(tokens[j])) { a = tokens[j] + a; j--; }
+      // gather full right operand
+      let b = '', k = i + 1;
+      while (k < tokens.length && /[0-9.]/.test(tokens[k])) { b += tokens[k]; k++; }
+      if (a && b) {
+        out += fracHTML(esc(a), esc(b));
+        disp.push(a + '/' + b);
+        i = k - 1;
+        continue;
+      }
+    }
+    if (tokens[i] === '*') { out += ' × '; disp.push('*'); }
+    else if (tokens[i] === '-') { out += ' − '; disp.push('-'); }
+    else if (/[a-zα-ω]/.test(tokens[i])) {
+      const defined = tokens[i] in vars;
+      out += '<span style="color:' + (defined ? '#1a6b7a' : '#c0392b') +
+             ';font-weight:700">' + esc(tokens[i]) + '</span>';
+      disp.push(tokens[i]);
+    }
+    else { out += esc(tokens[i]); disp.push(tokens[i]); }
+  }
+  document.getElementById('display').textContent = disp.join('');
+  document.getElementById('expr').innerHTML = out || '&nbsp;';
+}
+
+function ins(t){ tokens.push(t); render(); }
+function backspace(){ tokens.pop(); render(); }
+function = []; document.getElementById('result').textContent = ''; render(); }
+
+/* ---------- Math evaluation ---------- */
+
+function gcd(a, b){ return b ? gcd(b, a % b) : Math.abs(a); }
+
+function fmt(val) {
+  if (Number.isInteger(val)) return String(val);
+  const s = String(val);
+  const m = s.match(/^(-?\d+)\.(\d+)$/);
+  if (m) {
+    const num = parseInt(m[1] + m[2]), den = Math.pow(10, m[2].length);
+    const g = gcd(num, den);
+    return (num/g) + '/' + (den/g) + '  (≈ ' + val.toFixed(4) + ')';
+  }
+  return val.toFixed(6);
+}
+
+function evalSubst(s) {
+  // π constant
+  s = s.replace(/π/g, '(3.141592653589793)');
+  // substitute variables; undefined ones throw
+  s = s.replace(/[a-zα-ω]+/g, name => {
+    if (!(name in vars)) throw new Error('undefined variable: ' + name);
+    return '(' + vars[name] + ')';
+  });
+  // supported math symbols
+  s = s.replace(/√/g, 'Math.sqrt').replace(/\^/g, '**');
+
+  // whitelist check — nothing but numbers, operators, parens, Math.sqrt
+  if (/[^0-9+\-*/().%\sM]/.test(s.replace(/Math\.sqrt/g, 'M'))) throw new Error('bad token');
+
+  return Function('"use + s + ')')();
+}
+
+function evalExpr() {
+  try {
+    const s = tokens.join('');
+
+    // assignment: "x=5" or "α=2+3"
+    const eq = s.indexOf('=');
+    if (eq > 0 && /^[a-zα-ω]+$/.test(s.slice(0, eq).trim())) {
+      const name = s.slice(0, eq).trim();
+      const body = s.slice(eq + 1);
+      vars[name] = evalSubst(body);
+      document.getElementById('result').textContent = name + ' = ' + fmt(vars[name]);
+      render();
+      return;
+    }
+
+    const val = evalSubst(s);
+    document.getElementById('result').textContent = '= ' + fmt(val);
+  } catch (e) {
+    document.getElementById('result').textContent = 'error';
+  }
+}
+
+/* ---------- init ---------- */
+buildKeypad
+
+> ⚠️ The response reached the length limit. Reply **continue** to get the rest.
